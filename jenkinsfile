@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+
+    environment {
+        AZURE_STORAGE_ACCOUNT = "staticwebsite1234"  // Change this to your Azure Storage account name
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/Ramya0203-code/static-website-azure.git'
+            }
+        }
+
+        stage('Install Terraform') {
+            steps {
+                sh '''
+                terraform version
+                '''
+            }
+        }
+
+        stage('Initialize Terraform') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Apply Terraform') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform apply -auto-approve'
+                }
+            }
+        }
+
+        stage('Upload Static Website to Azure Storage') {
+            steps {
+                sh '''
+                az storage blob upload-batch -d '$web' --account-name ${AZURE_STORAGE_ACCOUNT} -s website
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment successful!"
+        }
+        failure {
+            echo "Deployment failed."
+        }
+    }
+}
